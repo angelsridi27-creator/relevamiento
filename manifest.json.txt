@@ -1,0 +1,17 @@
+{
+  "name": "EPEC Relevamiento Redes A.T.",
+  "short_name": "EPEC RAT",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#1e40af",
+  "theme_color": "#1e40af",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/855/855264.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

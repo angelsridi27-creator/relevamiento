@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Redes A.T.</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e40af">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .autocomplete-wrapper { position: relative; width: 100%; }
+    .autocomplete-items {
+      position: absolute; border: 1px solid #d4d4d4; border-top: none; z-index: 99;
+      top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto;
+      background-color: #ffffff; box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.15); border-radius: 0 0 8px 8px;
+    }
+    .autocomplete-items div { padding: 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+    .autocomplete-items div:hover { background-color: #f0fdf4; color: #166534; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+  <div class="max-w-md mx-auto p-4">
+    <div id="barragps" class="bg-slate-600 text-white text-center py-1 text-xs font-bold rounded-t-lg">
+      🔄 Verificando canales...
+    </div>
+
+    <div class="bg-blue-800 text-white p-4 text-center shadow-md">
+      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC</h1>
+      <p class="text-[11px] text-blue-200">PWA Independiente — Modo Offline Nativo</p>
+    </div>
+
+    <form id="formReclamo" class="bg-white p-5 rounded-b-lg shadow-md space-y-4" autocomplete="off">
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Responsable Técnico:</label>
+        <select id="operario" name="operario" required class="w-full px-3 py-2 border rounded-lg bg-white font-medium">
+          <option value="" disabled selected>Cargando personal...</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Línea de Alta Tensión (LAT):</label>
+        <div class="autocomplete-wrapper">
+          <input type="text" id="linea" name="linea" required class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Buscar terna...">
+          <div id="listaSugerencias" class="autocomplete-items hidden"></div>
+        </div>
+      </div>
+
+      <hr class="border-slate-200">
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Piquete N°:</label>
+          <input type="number" id="piquete" name="piquete" required class="w-full px-3 py-2 border rounded-lg text-center font-bold text-lg bg-slate-50" placeholder="N°">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Anomalía:</label>
+          <select id="categoria" name="categoria" required class="w-full px-3 py-2 border rounded-lg bg-white text-sm">
+            <option value="" disabled selected>Seleccionar...</option>
+            <option value="Poda">Poda</option>
+            <option value="Nido">Nido</option>
+            <option value="Aislador">Aislador</option>
+            <option value="Conductor">Conductor</option>
+            <option value="PAT">PAT</option>
+            <option value="Apoyo">Apoyo</option>
+            <option value="HdG">Hilo de Guardia</option>
+            <option value="Punto caliente">Punto Caliente</option>
+            <option value="Otros">Otros</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Prioridad de Intervención:</label>
+        <div class="grid grid-cols-3 gap-2">
+          <label class="flex flex-col items-center justify-center p-2 border rounded-lg cursor-pointer bg-red-50 text-red-700 font-bold text-xs">
+            <input type="radio" name="prioridad" value="Rojo" required class="mb-1 accent-red-600"> ROJO
+          </label>
+          <label class="flex flex-col items-center justify-center p-2 border rounded-lg cursor-pointer bg-amber-50 text-amber-700 font-bold text-xs">
+            <input type="radio" name="prioridad" value="Amarillo" class="mb-1 accent-amber-500"> AMARILLO
+          </label>
+          <label class="flex flex-col items-center justify-center p-2 border rounded-lg cursor-pointer bg-emerald-50 text-emerald-700 font-bold text-xs">
+            <input type="radio" name="prioridad" value="Verde" class="mb-1 accent-emerald-600"> VERDE
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Notas u Observaciones:</label>
+        <textarea id="observacion" name="observacion" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Detalles del estado..."></textarea>
+      </div>
+
+      <input type="hidden" id="lat" name="lat" value="Sin GPS">
+      <input type="hidden" id="lng" name="lng" value="Sin GPS">
+
+      <button type="submit" class="w-full bg-blue-800 text-white font-bold py-3 px-4 rounded-lg shadow hover:bg-blue-900 transition-all">
+        🚀 Registrar Piquete
+      </button>
+    </form>
+    <div id="feedback" class="mt-3 p-3 rounded-lg text-xs text-center font-bold hidden"></div>
+  </div>
+
+  <script>
+    // 🔔 PEGA TU URL DE IMPLEMENTACIÓN DE APPS SCRIPT AQUÍ ABAJO:
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwzqnghEDvOzC8DFXYSEUC5EH4BZlg4u-VxV1uIlZ2naUhkQcDERvPFURi_DZyQ0-k4xg/exec"; 
+    const TELEFONO_ALERTA = "5493510000000";
+
+    let cacheLineas = [];
+    let enviandoCola = false;
+
+    // Inicialización de la Aplicación Móvil
+    window.addEventListener("DOMContentLoaded", function() {
+      // Registrar el Service Worker para soporte offline real
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(() => console.log("SW Activo"));
+      }
+      
+      actualizarEstadoRed();
+      sincronizarListasDesplegables();
+      activarGPS();
+
+      window.addEventListener("online", () => { actualizarEstadoRed(); procesarColaPendiente(); });
+      window.addEventListener("offline", actualizarEstadoRed);
+    });
+
+    function actualizarEstadoRed() {
+      const b = document.getElementById("barragps");
+      if (navigator.onLine) {
+        b.className = "bg-emerald-600 text-white text-center py-1 text-xs font-bold rounded-t-lg";
+        b.innerText = "🟢 Conectado a Servidor — Cuenta Liberada";
+      } else {
+        b.className = "bg-amber-600 text-white text-center py-1 text-xs font-bold rounded-t-lg";
+        b.innerText = "📡 Modo Offline Cobertura Cero";
+      }
+    }
+
+    function sincronizarListasDesplegables() {
+      const opsLocales = JSON.parse(localStorage.getItem("pwa_ops")) || [];
+      cacheLineas = JSON.parse(localStorage.getItem("pwa_lineas")) || [];
+      
+      if (opsLocales.length > 0) renderizarOps(opsLocales);
+
+      if (navigator.onLine) {
+        // Truco crítico: Enviamos el JSON como texto plano para saltar restricciones CORS rigurosas
+        fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "getListas" })
+        })
+        .then(res => res.json())
+        .then(res => {
+          if (res.status === "SUCCESS") {
+            localStorage.setItem("pwa_ops", JSON.stringify(res.data.operarios));
+            localStorage.setItem("pwa_lineas", JSON.stringify(res.data.lineas));
+            renderizarOps(res.data.operarios);
+            cacheLineas = res.data.lineas;
+          }
+        }).catch(e => console.log("Servidor ocupado, usando memoria interna."));
+      }
+    }
+
+    function renderizarOps(lista) {
+      const s = document.getElementById("operario");
+      s.innerHTML = '<option value="" disabled selected>Seleccioná tu nombre...</option>';
+      lista.forEach(op => {
+        let o = document.createElement("option"); o.value = op; o.innerText = op; s.appendChild(o);
+      });
+    }
+
+    document.getElementById("formReclamo").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const fb = document.getElementById("feedback");
+      
+      const datos = {
+        operario: document.getElementById("operario").value,
+        linea: document.getElementById("linea").value,
+        piquete: document.getElementById("piquete").value,
+        categoria: document.getElementById("categoria").value,
+        prioridad: document.querySelector('input[name="prioridad"]:checked').value,
+        observacion: document.getElementById("observacion").value || "Sin observaciones",
+        lat: document.getElementById("lat").value,
+        lng: document.getElementById("lng").value,
+        fecha: new Date().toLocaleString("es-AR")
+      };
+
+      if (navigator.onLine) {
+        fb.className = "mt-3 p-3 rounded-lg text-xs text-center font-bold bg-amber-100 text-amber-900 block";
+        fb.innerText = "⏳ Impactando registro en Google Sheets...";
+        
+        fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "procesarReclamo", datos: datos }) })
+        .then(res => res.json())
+        .then(res => {
+          fb.className = "mt-3 p-3 rounded-lg text-xs text-center font-bold bg-emerald-100 text-emerald-900 block";
+          fb.innerText = "✅ Sincronizado en la central. Abriendo despacho.";
+          setTimeout(() => fb.classList.add("hidden"), 2000);
+        }).catch(() => encolarOffline(datos));
+      } else {
+        encolarOffline(datos);
+      }
+
+      // Reset de campos variables
+      document.getElementById("piquete").value = "";
+      document.getElementById("categoria").value = "";
+      document.getElementById("observacion").value = "";
+      document.getElementsByName("prioridad").forEach(r => r.checked = false);
+
+      dispararWhatsApp(datos);
+    });
+
+    function encolarOffline(datos) {
+      const fb = document.getElementById("feedback");
+      let cola = JSON.parse(localStorage.getItem("pwa_cola")) || [];
+      cola.push(datos);
+      localStorage.setItem("pwa_cola", JSON.stringify(cola));
+      fb.className = "mt-3 p-3 rounded-lg text-xs text-center font-bold bg-blue-100 text-blue-900 block";
+      fb.innerText = "📥 Guardado en memoria del celular (Sin señal). Se subirá al volver a la base.";
+      setTimeout(() => fb.classList.add("hidden"), 3000);
+    }
+
+    function procesarColaPendiente() {
+      if (enviandoCola || !navigator.onLine) return;
+      let cola = JSON.parse(localStorage.getItem("pwa_cola")) || [];
+      if (cola.length === 0) return;
+
+      enviandoCola = true;
+      let primero = cola[0];
+
+      fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "procesarReclamo", datos: primero }) })
+      .then(res => res.json())
+      .then(res => {
+        if (res.status === "SUCCESS") {
+          let nuevaCola = JSON.parse(localStorage.getItem("pwa_cola")) || [];
+          nuevaCola.shift();
+          localStorage.setItem("pwa_cola", JSON.stringify(nuevaCola));
+          enviandoCola = false;
+          procesarColaPendiente();
+        }
+      }).catch(() => enviandoCola = false);
+    }
+
+    function dispararWhatsApp(d) {
+      let urlMap = (d.lat !== "Sin GPS") ? `https://maps.google.com/?q=${d.lat},${d.lng}` : "No disponible";
+      let msg = `⚠️ *EPEC RELEVAMIENTO A.T. - ${d.prioridad.toUpperCase()}* ⚠️\n\n` +
+                `• *Línea:* ${d.linea}\n` +
+                `• *Piquete:* N° ${d.piquete}\n` +
+                `• *Falla:* ${d.categoria}\n` +
+                `• *Responsable:* ${d.operario}\n` +
+                `• *Coordenadas:* ${urlMap}\n` +
+                `• *Notas:* ${d.observacion}`;
+      window.open(`https://api.whatsapp.com/send?phone=${TELEFONO_ALERTA}&text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    function activarGPS() {
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(p => {
+          document.getElementById("lat").value = p.coords.latitude;
+          document.getElementById("lng").value = p.coords.longitude;
+        }, null, { enableHighAccuracy: true });
+      }
+    }
+
+    // Lógica del buscador predictivo de Líneas
+    const inp = document.getElementById("linea");
+    const sug = document.getElementById("listaSugerencias");
+    inp.addEventListener("input", function() {
+      const v = this.value.toUpperCase(); sug.innerHTML = "";
+      if (!v) { sug.classList.add("hidden"); return; }
+      const f = cacheLineas.filter(l => l.toUpperCase().includes(v));
+      if (f.length === 0) { sug.classList.add("hidden"); return; }
+      sug.classList.remove("hidden");
+      f.forEach(item => {
+        let d = document.createElement("DIV"); d.innerText = item;
+        d.className = "p-3 cursor-pointer border-b hover:bg-slate-50 text-sm font-medium";
+        d.addEventListener("click", function() { inp.value = item; sug.classList.add("hidden"); });
+        sug.appendChild(d);
+      });
+    });
+    document.addEventListener("click", (e) => { if (e.target !== inp) sug.classList.add("hidden"); });
+  </script>
+</body>
+</html>
