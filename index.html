@@ -124,10 +124,10 @@
       const b = document.getElementById("barragps");
       if (navigator.onLine) {
         b.className = "bg-emerald-600 text-white text-center py-1 text-xs font-bold rounded-t-lg";
-        b.innerText = "🟢 Conectado a Servidor — Cuenta Liberada";
+        b.innerText = "🟢 Conectado a Servidor — Cuenta Liberada1";
       } else {
         b.className = "bg-amber-600 text-white text-center py-1 text-xs font-bold rounded-t-lg";
-        b.innerText = "📡 Modo Offline Cobertura Cero";
+        b.innerText = "📡 Modo Offline Cobertura Cero1";
       }
     }
 
@@ -167,7 +167,7 @@
       
       const ahora = new Date();
       const soloFecha = ahora.toLocaleDateString("es-AR"); 
-      const soloHora = ahora.toLocaleTimeString("es-AR");
+      const soloHora = adaptersoloHora = ahora.toLocaleTimeString("es-AR");
 
       const datos = {
         operario: document.getElementById("operario").value,
@@ -198,7 +198,7 @@
         encolarOffline(datos);
       }
 
-      // Despacha el mensaje estructurado a WhatsApp
+      // Despacha el mensaje estructurado a WhatsApp de manera nativa y directa
       dispararWhatsApp(datos);
 
       // Limpieza parcial de campos secundarios
@@ -240,20 +240,20 @@
       });
     }
 
-    // 💬 Función de WhatsApp optimizada e inmune al modo offline
+    // 💬 Función de WhatsApp blindada contra caídas de señal y errores sintácticos
     function dispararWhatsApp(d) {
-      let urlMap = (d.lat !== "Sin GPS") ? `https://maps.google.com/?q=${d.lat},${d.lng}` : "No disponible";
+      // Formato oficial limpio sin signos de pregunta intermedios para evitar cortes de cadena
+      let urlMap = (d.lat !== "Sin GPS") ? `https://www.google.com/maps/place/${d.lat},${d.lng}` : "No disponible";
       
-      // Colocamos la ubicación al final absoluto para resguardar los textos superiores de cualquier bug del teléfono
-      let msg = `*EPEC RELEVAMIENTO 1.1*\n\n` +
+      let msg = `*EPEC RELEVAMIENTO1*\n\n` +
                 `• *Línea:* ${d.linea}\n` +
                 `• *Piquete:* ${d.piquete}\n` +
                 `• *Falla:* ${d.categoria}\n` +
                 `• *Notas:* ${d.observacion}\n` +
                 `• *Ubicación:* ${urlMap}`;
       
-      // Enlace universal wa.me que funciona de manera impecable con o sin señal
-      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+      // whatsapp:// nativo + window.location.href garantiza la inyección completa del bloque sin internet
+      window.location.href = `whatsapp://send?text=${encodeURIComponent(msg)}`;
     }
 
     function activarGPS() {
