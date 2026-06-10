@@ -51,7 +51,7 @@
       <div class="grid grid-cols-2 gap-2">
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1">Piquete N°:</label>
-          <input type="number" id="piquete" name="piquete" required class="w-full px-3 py-2 border rounded-lg text-center font-bold text-lg bg-slate-50" placeholder="N°">
+          <input type="text" id="piquete" name="piquete" required class="w-full px-3 py-2 border rounded-lg text-center font-bold text-base bg-slate-50" placeholder="Ej: 467RT-477">
         </div>
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1">Anomalía:</label>
@@ -102,19 +102,15 @@
 
   <script>
     // 🔔 PEGA TU URL DE IMPLEMENTACIÓN DE APPS SCRIPT AQUÍ ABAJO:
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxsoKOcah_Ua6Ceovns3CYFB3sy82157dqEzYPiGmMua1IUaSWImAty1qhztdLp9GPLUw/exec"; 
-    const TELEFONO_ALERTA = "5493510000000";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz5y7FA8znYQpSKVWPi8ocaccB6zTjcQ4adONTypPWu6vn_NWZoTKbtL5cgNSN9Wj4r-g/exec"; 
 
     let cacheLineas = [];
     let enviandoCola = false;
 
-    // Inicialización de la Aplicación Móvil
     window.addEventListener("DOMContentLoaded", function() {
-      // Registrar el Service Worker para soporte offline real
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').then(() => console.log("SW Activo"));
       }
-      
       actualizarEstadoRed();
       sincronizarListasDesplegables();
       activarGPS();
@@ -137,11 +133,9 @@
     function sincronizarListasDesplegables() {
       const opsLocales = JSON.parse(localStorage.getItem("pwa_ops")) || [];
       cacheLineas = JSON.parse(localStorage.getItem("pwa_lineas")) || [];
-      
       if (opsLocales.length > 0) renderizarOps(opsLocales);
 
       if (navigator.onLine) {
-        // Truco crítico: Enviamos el JSON como texto plano para saltar restricciones CORS rigurosas
         fetch(SCRIPT_URL, {
           method: "POST",
           body: JSON.stringify({ action: "getListas" })
@@ -154,7 +148,7 @@
             renderizarOps(res.data.operarios);
             cacheLineas = res.data.lineas;
           }
-        }).catch(e => console.log("Servidor ocupado, usando memoria interna."));
+        }).catch(e => console.log("Servidor ocupado. Usando caché local."));
       }
     }
 
@@ -170,6 +164,10 @@
       e.preventDefault();
       const fb = document.getElementById("feedback");
       
+      const ahora = new Date();
+      const soloFecha = ahora.toLocaleDateString("es-AR"); 
+      const soloHora = ahora.toLocaleTimeString("es-AR");
+
       const datos = {
         operario: document.getElementById("operario").value,
         linea: document.getElementById("linea").value,
@@ -179,7 +177,8 @@
         observacion: document.getElementById("observacion").value || "Sin observaciones",
         lat: document.getElementById("lat").value,
         lng: document.getElementById("lng").value,
-        fecha: new Date().toLocaleString("es-AR")
+        fecha: soloFecha,
+        hora: soloHora
       };
 
       if (navigator.onLine) {
@@ -197,8 +196,6 @@
         encolarOffline(datos);
       }
 
-      // Reset de campos variables
-      document.getElementById("piquete").value = "";
       document.getElementById("categoria").value = "";
       document.getElementById("observacion").value = "";
       document.getElementsByName("prioridad").forEach(r => r.checked = false);
@@ -238,15 +235,17 @@
     }
 
     function dispararWhatsApp(d) {
-      let urlMap = (d.lat !== "Sin GPS") ? `https://maps.google.com/?q=${d.lat},${d.lng}` : "No disponible";
+      let urlMap = (d.lat !== "Sin GPS") ? `http://maps.google.com/?q=${d.lat},${d.lng}` : "No disponible";
       let msg = `⚠️ *EPEC RELEVAMIENTO A.T. - ${d.prioridad.toUpperCase()}* ⚠️\n\n` +
                 `• *Línea:* ${d.linea}\n` +
-                `• *Piquete:* N° ${d.piquete}\n` +
+                `• *Piquete:* ${d.piquete}\n` +
                 `• *Falla:* ${d.categoria}\n` +
                 `• *Responsable:* ${d.operario}\n` +
                 `• *Coordenadas:* ${urlMap}\n` +
                 `• *Notas:* ${d.observacion}`;
-      window.open(`https://api.whatsapp.com/send?phone=${TELEFONO_ALERTA}&text=${encodeURIComponent(msg)}`, '_blank');
+      
+      // Se quitó el parámetro phone. Ahora WhatsApp te pide elegir a quién enviárselo.
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
     function activarGPS() {
@@ -258,7 +257,6 @@
       }
     }
 
-    // Lógica del buscador predictivo de Líneas
     const inp = document.getElementById("linea");
     const sug = document.getElementById("listaSugerencias");
     inp.addEventListener("input", function() {
