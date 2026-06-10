@@ -26,7 +26,7 @@
     </div>
 
     <div class="bg-blue-800 text-white p-4 text-center shadow-md">
-      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC</h1>
+      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC 1.3</h1>
       <p class="text-[11px] text-blue-200">PWA Independiente — Modo Offline Nativo</p>
     </div>
 
@@ -124,10 +124,10 @@
       const b = document.getElementById("barragps");
       if (navigator.onLine) {
         b.className = "bg-emerald-600 text-white text-center py-1 text-xs font-bold rounded-t-lg";
-        b.innerText = "🟢 Conectado a Servidor — Cuenta Liberada1";
+        b.innerText = "🟢 Conectado a Servidor — Cuenta Liberada";
       } else {
         b.className = "bg-amber-600 text-white text-center py-1 text-xs font-bold rounded-t-lg";
-        b.innerText = "📡 Modo Offline Cobertura Cero1";
+        b.innerText = "📡 Modo Offline Cobertura Cero";
       }
     }
 
@@ -167,7 +167,7 @@
       
       const ahora = new Date();
       const soloFecha = ahora.toLocaleDateString("es-AR"); 
-      const soloHora = adaptersoloHora = ahora.toLocaleTimeString("es-AR");
+      const soloHora = ahora.toLocaleTimeString("es-AR");
 
       const datos = {
         operario: document.getElementById("operario").value,
@@ -198,7 +198,7 @@
         encolarOffline(datos);
       }
 
-      // Despacha el mensaje estructurado a WhatsApp de manera nativa y directa
+      // Despacha el mensaje estructurado a WhatsApp
       dispararWhatsApp(datos);
 
       // Limpieza parcial de campos secundarios
@@ -240,19 +240,27 @@
       });
     }
 
-    // 💬 Función de WhatsApp blindada contra caídas de señal y errores sintácticos
     function dispararWhatsApp(d) {
-      // Formato oficial limpio sin signos de pregunta intermedios para evitar cortes de cadena
-      let urlMap = (d.lat !== "Sin GPS") ? `https://www.google.com/maps/place/${d.lat},${d.lng}` : "No disponible";
+      // Retiramos el protocolo https:// del enlace de mapas para evitar que el enrutamiento offline del celular lo rompa
+      let urlMap = (d.lat !== "Sin GPS") ? `www.google.com/maps/place/${d.lat},${d.lng}` : "No disponible";
       
-      let msg = `*EPEC RELEVAMIENTO1*\n\n` +
+      let msg = `*EPEC RELEVAMIENTO 1.3*\n\n` +
                 `• *Línea:* ${d.linea}\n` +
                 `• *Piquete:* ${d.piquete}\n` +
                 `• *Falla:* ${d.categoria}\n` +
                 `• *Notas:* ${d.observacion}\n` +
                 `• *Ubicación:* ${urlMap}`;
       
-      // whatsapp:// nativo + window.location.href garantiza la inyección completa del bloque sin internet
+      // Resguardo de seguridad: Copia de respaldo en portapapeles por si el OS borra el cuadro de texto estando offline
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(msg).catch(() => {});
+      } else {
+        const el = document.createElement('textarea');
+        el.value = msg; document.body.appendChild(el); el.select();
+        document.execCommand('copy'); document.body.removeChild(el);
+      }
+      
+      // Apertura por protocolo de aplicación local pura, inmune a la falta de datos móviles
       window.location.href = `whatsapp://send?text=${encodeURIComponent(msg)}`;
     }
 
