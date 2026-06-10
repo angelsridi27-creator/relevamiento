@@ -1,20 +1,27 @@
-const CACHE_NAME = "epec-rat-cache-v1";
+const CACHE_NAME = 'epec-rat-cache-v1';
+
+// Los archivos locales de tu app que necesitás que abran SÍ O SÍ sin internet
 const ASSETS = [
-  "index.html",
-  "manifest.json"
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './manifest.json',
+  './icono.png' // Cambialo por el nombre real de tu ícono si tenés uno
 ];
 
-// Instalar el Service Worker y guardar los archivos en el caché del celular
-self.addEventListener("install", (e) => {
+// 1. INSTALACIÓN: Guarda los archivos en el almacenamiento permanente del teléfono
+self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
+      console.log('Caché permanente guardada con éxito');
       return cache.addAll(ASSETS);
-    })
+    }).then(() => self.skipWaiting())
   );
 });
 
-// Activar y limpiar cachés antiguos
-self.addEventListener("activate", (e) => {
+// 2. ACTIVACIÓN: Limpia cachés viejas si modificás la app en el futuro
+self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
@@ -24,20 +31,25 @@ self.addEventListener("activate", (e) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
-// Interceptar solicitudes: Si estás offline, sirve el archivo local guardado
-self.addEventListener("fetch", (e) => {
-  // Solo cacheamos solicitudes locales del esqueleto de la app, no los envíos a Google
-  if (e.request.url.includes("script.google.com")) {
-    return; 
+// 3. INTERCEPCIÓN (La clave del éxito): Estrategia Cache-First para la App
+self.addEventListener('fetch', (e) => {
+  // Ignora las peticiones que van a Google Sheets (porque esas sí o sí necesitan internet o van por la cola offline)
+  if (e.request.url.includes('script.google.com')) {
+    return;
   }
-  
+
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
-      return cachedResponse || fetch(e.request);
+      // Si el archivo está en el teléfono (HTML, CSS, JS), lo devuelve al instante sin mirar internet
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      // Si es algo nuevo (como una foto de afuera), lo busca en la red
+      return fetch(e.request);
     })
   );
 });
