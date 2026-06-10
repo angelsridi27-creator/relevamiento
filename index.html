@@ -198,10 +198,10 @@
         encolarOffline(datos);
       }
 
-      // Despacha el mensaje completo a WhatsApp usando protocolo local nativo
+      // Despacha el mensaje estructurado a WhatsApp
       dispararWhatsApp(datos);
 
-      // Limpieza parcial solicitada del formulario
+      // Limpieza parcial de campos secundarios
       document.getElementById("categoria").value = "";
       document.getElementById("observacion").value = "";
       document.getElementsByName("prioridad").forEach(r => r.checked = false);
@@ -240,19 +240,20 @@
       });
     }
 
+    // 💬 Función de WhatsApp optimizada e inmune al modo offline
     function dispararWhatsApp(d) {
-      // Corrección del enlace de mapas al estándar limpio de Google
       let urlMap = (d.lat !== "Sin GPS") ? `https://maps.google.com/?q=${d.lat},${d.lng}` : "No disponible";
       
+      // Colocamos la ubicación al final absoluto para resguardar los textos superiores de cualquier bug del teléfono
       let msg = `*EPEC RELEVAMIENTO*\n\n` +
                 `• *Línea:* ${d.linea}\n` +
                 `• *Piquete:* ${d.piquete}\n` +
                 `• *Falla:* ${d.categoria}\n` +
-                `• *Coordenadas:* ${urlMap}\n` +
-                `• *Notas:* ${d.observacion}`;
+                `• *Notas:* ${d.observacion}\n` +
+                `• *Ubicación:* ${urlMap}`;
       
-      // Uso de esquema 'whatsapp://' nativo para garantizar el funcionamiento sin datos móviles ni señal
-      window.open(`whatsapp://send?text=${encodeURIComponent(msg)}`, '_blank');
+      // Enlace universal wa.me que funciona de manera impecable con o sin señal
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
     function activarGPS() {
