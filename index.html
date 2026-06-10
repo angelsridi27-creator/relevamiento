@@ -86,7 +86,7 @@
       </div>
 
       <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1">Notas u Observaciones:</label>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Notes u Observaciones:</label>
         <textarea id="observacion" name="observacion" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Detalles del estado..."></textarea>
       </div>
 
@@ -101,7 +101,7 @@
   </div>
 
   <script>
-    // 🔔 PEGA TU URL DE IMPLEMENTACIÓN DE APPS SCRIPT AQUÍ ABAJO:
+    // 🔔 CONFIGURA TU URL DE IMPLEMENTACIÓN DE APPS SCRIPT ACÁ ABAJO:
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz5y7FA8znYQpSKVWPi8ocaccB6zTjcQ4adONTypPWu6vn_NWZoTKbtL5cgNSN9Wj4r-g/exec"; 
 
     let cacheLineas = [];
@@ -114,6 +114,9 @@
       actualizarEstadoRed();
       sincronizarListasDesplegables();
       activarGPS();
+      
+      // Corrección 1: Al abrir o recargar la app, procesa si quedó algo pendiente en el celular
+      procesarColaPendiente(); 
 
       window.addEventListener("online", () => { actualizarEstadoRed(); procesarColaPendiente(); });
       window.addEventListener("offline", actualizarEstadoRed);
@@ -191,6 +194,9 @@
           fb.className = "mt-3 p-3 rounded-lg text-xs text-center font-bold bg-emerald-100 text-emerald-900 block";
           fb.innerText = "✅ Sincronizado en la central. Abriendo despacho.";
           setTimeout(() => fb.classList.add("hidden"), 2000);
+          
+          // Corrección 2: Si este reclamo entró bien, aprovecha el canal abierto y empuja lo viejo
+          procesarColaPendiente(); 
         }).catch(() => encolarOffline(datos));
       } else {
         encolarOffline(datos);
@@ -229,9 +235,13 @@
           nuevaCola.shift();
           localStorage.setItem("pwa_cola", JSON.stringify(nuevaCola));
           enviandoCola = false;
-          procesarColaPendiente();
+          
+          // Sigue enviando el resto si hay más en la lista de espera
+          procesarColaPendiente(); 
         }
-      }).catch(() => enviandoCola = false);
+      }).catch(() => {
+        enviandoCola = false;
+      });
     }
 
     function dispararWhatsApp(d) {
@@ -244,7 +254,6 @@
                 `• *Coordenadas:* ${urlMap}\n` +
                 `• *Notas:* ${d.observacion}`;
       
-      // Se quitó el parámetro phone. Ahora WhatsApp te pide elegir a quién enviárselo.
       window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
