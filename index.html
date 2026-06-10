@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>App Redes A.T.</title>
-  <link rel="manifest" href="manifest.json">
+  <link class="manifest" href="manifest.json">
   <meta name="theme-color" content="#1e40af">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -26,11 +26,21 @@
     </div>
 
     <div class="bg-blue-800 text-white p-4 text-center shadow-md">
-      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC 1.3</h1>
+      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC 1.4</h1>
       <p class="text-[11px] text-blue-200">PWA Independiente — Modo Offline Nativo</p>
     </div>
 
     <form id="formReclamo" class="bg-white p-5 rounded-b-lg shadow-md space-y-4" autocomplete="off">
+      
+      <!-- ⚠️ RECUADRO DE ALERTAS Y CONTADOR OFFLINE -->
+      <div id="alertaPendientes" class="bg-amber-50 border border-amber-200 p-3 rounded-lg text-xs text-amber-950 hidden">
+        <div class="flex justify-between items-center mb-1">
+          <span class="font-bold flex items-center gap-1">⏳ Reclamos guardados localmente:</span>
+          <span id="cantPendientes" class="bg-amber-600 text-white font-bold px-2 py-0.5 rounded-full text-xs">0</span>
+        </div>
+        <p class="text-amber-700 leading-relaxed font-medium">Cuando vuelvas a tener señal, **actualizá la página** para que estos registros se envíen automáticamente a la planilla central.</p>
+      </div>
+
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-1">Responsable Técnico:</label>
         <select id="operario" name="operario" required class="w-full px-3 py-2 border rounded-lg bg-white font-medium">
@@ -86,7 +96,7 @@
       </div>
 
       <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1">Notas u Observaciones:</label>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Notes u Observaciones:</label>
         <textarea id="observacion" name="observacion" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Detalles del estado..."></textarea>
       </div>
 
@@ -114,6 +124,7 @@
       actualizarEstadoRed();
       sincronizarListasDesplegables();
       activarGPS();
+      actualizarContadorOffline(); 
       procesarColaPendiente(); 
 
       window.addEventListener("online", () => { actualizarEstadoRed(); procesarColaPendiente(); });
@@ -128,6 +139,20 @@
       } else {
         b.className = "bg-amber-600 text-white text-center py-1 text-xs font-bold rounded-t-lg";
         b.innerText = "📡 Modo Offline Cobertura Cero";
+      }
+    }
+
+    // Actualiza la interfaz visual del contador de pendientes
+    function actualizarContadorOffline() {
+      const cola = JSON.parse(localStorage.getItem("pwa_cola")) || [];
+      const boxAlerta = document.getElementById("alertaPendientes");
+      const txtContador = document.getElementById("cantPendientes");
+
+      if (cola.length > 0) {
+        txtContador.innerText = cola.length;
+        boxAlerta.classList.remove("hidden");
+      } else {
+        boxAlerta.classList.add("hidden");
       }
     }
 
@@ -198,10 +223,8 @@
         encolarOffline(datos);
       }
 
-      // Despacha el mensaje estructurado a WhatsApp
       dispararWhatsApp(datos);
 
-      // Limpieza parcial de campos secundarios
       document.getElementById("categoria").value = "";
       document.getElementById("observacion").value = "";
       document.getElementsByName("prioridad").forEach(r => r.checked = false);
@@ -212,15 +235,21 @@
       let cola = JSON.parse(localStorage.getItem("pwa_cola")) || [];
       cola.push(datos);
       localStorage.setItem("pwa_cola", JSON.stringify(cola));
+      
+      actualizarContadorOffline();
+
       fb.className = "mt-3 p-3 rounded-lg text-xs text-center font-bold bg-blue-100 text-blue-900 block";
-      fb.innerText = "📥 Guardado en memoria del celular (Sin señal). Se subirá al volver a la base.";
+      fb.innerText = "📥 Guardado en memoria del celular (Sin señal).";
       setTimeout(() => fb.classList.add("hidden"), 3000);
     }
 
     function procesarColaPendiente() {
       if (enviandoCola || !navigator.onLine) return;
       let cola = JSON.parse(localStorage.getItem("pwa_cola")) || [];
-      if (cola.length === 0) return;
+      if (cola.length === 0) {
+        actualizarContadorOffline();
+        return;
+      }
 
       enviandoCola = true;
       let primero = cola[0];
@@ -232,6 +261,8 @@
           let nuevaCola = JSON.parse(localStorage.getItem("pwa_cola")) || [];
           nuevaCola.shift();
           localStorage.setItem("pwa_cola", JSON.stringify(nuevaCola));
+          
+          actualizarContadorOffline();
           enviandoCola = false;
           procesarColaPendiente(); 
         }
@@ -241,17 +272,15 @@
     }
 
     function dispararWhatsApp(d) {
-      // Retiramos el protocolo https:// del enlace de mapas para evitar que el enrutamiento offline del celular lo rompa
       let urlMap = (d.lat !== "Sin GPS") ? `www.google.com/maps/place/${d.lat},${d.lng}` : "No disponible";
       
-      let msg = `*EPEC RELEVAMIENTO 1.3*\n\n` +
+      let msg = `*EPEC RELEVAMIENTO 1.4*\n\n` +
                 `• *Línea:* ${d.linea}\n` +
                 `• *Piquete:* ${d.piquete}\n` +
                 `• *Falla:* ${d.categoria}\n` +
                 `• *Notas:* ${d.observacion}\n` +
                 `• *Ubicación:* ${urlMap}`;
       
-      // Resguardo de seguridad: Copia de respaldo en portapapeles por si el OS borra el cuadro de texto estando offline
       if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(msg).catch(() => {});
       } else {
@@ -260,7 +289,6 @@
         document.execCommand('copy'); document.body.removeChild(el);
       }
       
-      // Apertura por protocolo de aplicación local pura, inmune a la falta de datos móviles
       window.location.href = `whatsapp://send?text=${encodeURIComponent(msg)}`;
     }
 
