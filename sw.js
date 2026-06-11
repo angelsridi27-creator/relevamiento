@@ -1,20 +1,18 @@
 const CACHE_NAME = 'epec-rat-cache-v1';
 
-// Los archivos locales de tu app que necesitás que abran SÍ O SÍ sin internet
+// Los recursos reales que usa tu index.html
 const ASSETS = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
   './manifest.json',
-  './icono.png' // Cambialo por el nombre real de tu ícono si tenés uno
+  'https://cdn.tailwindcss.com' // 🔥 CLAVE: Registramos Tailwind para que funcione 100% offline
 ];
 
 // 1. INSTALACIÓN: Guarda los archivos en el almacenamiento permanente del teléfono
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Caché permanente guardada con éxito');
+      console.log('Caché de Redes A.T. guardada con éxito');
       return cache.addAll(ASSETS);
     }).then(() => self.skipWaiting())
   );
@@ -35,20 +33,19 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// 3. INTERCEPCIÓN (La clave del éxito): Estrategia Cache-First para la App
+// 3. INTERCEPCIÓN: Estrategia Cache-First (Busca primero en el disco del celular)
 self.addEventListener('fetch', (e) => {
-  // Ignora las peticiones que van a Google Sheets (porque esas sí o sí necesitan internet o van por la cola offline)
+  // Ignora las peticiones que van a Google Sheets (esas van por la cola interna del formulario)
   if (e.request.url.includes('script.google.com')) {
     return;
   }
 
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
-      // Si el archivo está en el teléfono (HTML, CSS, JS), lo devuelve al instante sin mirar internet
+      // Si el recurso (incluido Tailwind) está guardado, lo entrega al instante sin mirar internet
       if (cachedResponse) {
         return cachedResponse;
       }
-      // Si es algo nuevo (como una foto de afuera), lo busca en la red
       return fetch(e.request);
     })
   );
