@@ -272,25 +272,34 @@
     }
 
     function dispararWhatsApp(d) {
-      let urlMap = (d.lat !== "Sin GPS") ? `www.google.com/maps/place/${d.lat},${d.lng}` : "No disponible";
-      
-      let msg = `*EPEC RELEVAMIENTO 1.5*\n\n` +
-                `• *Línea:* ${d.linea}\n` +
-                `• *Piquete:* ${d.piquete}\n` +
-                `• *Reclamo:* ${d.categoria}\n` +
-                `• *Observacion:* ${d.observacion}\n` +
-                `• *Ubicación:* ${urlMap}`;
-      
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(msg).catch(() => {});
-      } else {
-        const el = document.createElement('textarea');
-        el.value = msg; document.body.appendChild(el); el.select();
-        document.execCommand('copy'); document.body.removeChild(el);
-      }
-      
-      window.location.href = `whatsapp://send?text=${encodeURIComponent(msg)}`;
-    }
+  let urlMap = (d.lat !== "Sin GPS") ? `www.google.com/maps/place/${d.lat},${d.lng}` : "No disponible";
+  
+  // Mapeo de emoji según la prioridad recibida en d.prioridad (o la propiedad que uses)
+  let emojiPrioridad = "⚪";
+  if (d.prioridad) {
+    let prio = d.prioridad.toString().toUpperCase();
+    if (prio.includes("ROJO") || prio.includes("ALTA")) emojiPrioridad = "🔴";
+    else if (prio.includes("AMARILLO") || prio.includes("MEDIA")) emojiPrioridad = "🟡";
+    else if (prio.includes("VERDE") || prio.includes("BAJA")) emojiPrioridad = "🟢";
+  }
+
+  let msg = `*EPEC RELEVAMIENTO 1.5*\n\n` +
+            `• *Línea:* ${d.linea}\n` +
+            `• *Piquete:* ${d.piquete}\n` +
+            `• *Reclamo:* ${d.categoria} ${emojiPrioridad}\n` +
+            `• *Observacion:* ${d.observacion}\n` +
+            `• *Ubicación:* ${urlMap}`;
+  
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(msg).catch(() => {});
+  } else {
+    const el = document.createElement('textarea');
+    el.value = msg; document.body.appendChild(el); el.select();
+    document.execCommand('copy'); document.body.removeChild(el);
+  }
+  
+  window.location.href = `whatsapp://send?text=${encodeURIComponent(msg)}`;
+}
 
     function activarGPS() {
       if (navigator.geolocation) {
