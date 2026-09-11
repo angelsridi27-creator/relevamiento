@@ -26,7 +26,7 @@
     </div>
 
     <div class="bg-blue-800 text-white p-4 text-center shadow-md">
-      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC 1.7</h1>
+      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC 1.7.1</h1>
       <p class="text-[11px] text-blue-200">PWA Independiente — Modo Offline Nativo</p>
     </div>
 
@@ -314,13 +314,13 @@
 
     document.addEventListener("click", (e) => { if (e.target !== inp) sug.classList.add("hidden"); });
 
-    // SUBMIT DEL FORMULARIO CON PROTECCIÓN ANTI-DOBLE CLIC
+    // SUBMIT DEL FORMULARIO CON APERTURA INSTANTÁNEA
     document.getElementById("formReclamo").addEventListener("submit", function(e) {
       e.preventDefault();
       
       const btnSubmit = document.getElementById("btnSubmit");
       
-      // 🚫 BLOQUEO PREVENTIVO: Si el botón ya está deshabilitado, cortar ejecución
+      // 🚫 EVITAR REPETICIONES SI YA SE ESTÁ PROCESANDO
       if (btnSubmit.disabled) return;
 
       const textoLinea = inp.value.trim().toUpperCase();
@@ -335,10 +335,10 @@
         return; 
       }
 
-      // 🔒 DESHABILITAR BOTÓN PARA EVITAR RÁFAGAS
+      // 🔒 DESHABILITAR BOTÓN PARA BLOQUEAR DOBLE CLIC
       btnSubmit.disabled = true;
       btnSubmit.classList.add("opacity-50", "cursor-not-allowed");
-      btnSubmit.innerText = "⏳ Registrando...";
+      btnSubmit.innerText = "⏳ Procesando...";
 
       // ARMADO DEL CAMPO PIQUETE/VANO
       const pDesde = document.getElementById("piqueteDesde").value.trim();
@@ -367,21 +367,17 @@
         hora: soloHora
       };
 
-      const finalizarEnvio = () => {
-        dispararWhatsApp(datos);
+      // 1. ⚡ DISPARO INSTANTÁNEO A WHATSAPP (SIN ESPERAR RED)
+      dispararWhatsApp(datos);
 
-        document.getElementById("piqueteDesde").value = "";
-        document.getElementById("piqueteHasta").value = "";
-        document.getElementById("categoria").value = "";
-        document.getElementById("observacion").value = "";
-        document.getElementsByName("prioridad").forEach(r => r.checked = false);
+      // 2. 🧹 LIMPIEZA INMEDIATA DE CAMPOS
+      document.getElementById("piqueteDesde").value = "";
+      document.getElementById("piqueteHasta").value = "";
+      document.getElementById("categoria").value = "";
+      document.getElementById("observacion").value = "";
+      document.getElementsByName("prioridad").forEach(r => r.checked = false);
 
-        // 🔓 REHABILITAR BOTÓN
-        btnSubmit.disabled = false;
-        btnSubmit.classList.remove("opacity-50", "cursor-not-allowed");
-        btnSubmit.innerText = "🚀 Registrar Piquete";
-      };
-
+      // 3. 🌐 IMPACTO EN SHEETS EN SEGUNDO PLANO
       if (navigator.onLine) {
         fb.className = "mt-3 p-3 rounded-lg text-xs text-center font-bold bg-amber-100 text-amber-900 block";
         fb.innerText = "⏳ Impactando registro en Google Sheets...";
@@ -390,25 +386,30 @@
         .then(res => res.json())
         .then(res => {
           fb.className = "mt-3 p-3 rounded-lg text-xs text-center font-bold bg-emerald-100 text-emerald-900 block";
-          fb.innerText = "✅ Sincronizado en la central. Abriendo despacho.";
+          fb.innerText = "✅ Sincronizado en la central.";
           setTimeout(() => fb.classList.add("hidden"), 2000);
           procesarColaPendiente(); 
-          finalizarEnvio();
-        }).catch(() => {
-          encolarOffline(datos);
-          finalizarEnvio();
-        });
+        })
+        .catch(() => encolarOffline(datos))
+        .finally(() => reactivarBoton());
       } else {
         encolarOffline(datos);
-        finalizarEnvio();
+        reactivarBoton();
       }
     });
+
+    function reactivarBoton() {
+      const btnSubmit = document.getElementById("btnSubmit");
+      btnSubmit.disabled = false;
+      btnSubmit.classList.remove("opacity-50", "cursor-not-allowed");
+      btnSubmit.innerText = "🚀 Registrar Piquete";
+    }
 
     function encolarOffline(datos) {
       const fb = document.getElementById("feedback");
       let cola = JSON.parse(localStorage.getItem("pwa_cola")) || [];
       
-      // 🛡️ CONTROL ANTI-DUPLICADOS DENTRO DE LA COLA LOCAL
+      // 🛡️ EVITAR DUPLICADOS EN LA MEMORIA DEL TELÉFONO
       const yaExiste = cola.some(item => 
         item.linea === datos.linea && 
         item.piquete === datos.piquete && 
@@ -468,7 +469,7 @@
         else if (prio.includes("VERDE") || prio.includes("BAJA")) emojiPrioridad = "🟢";
       }
 
-      let msg = `*EPEC RELEVAMIENTO 1.7*\n\n` +
+      let msg = `*EPEC RELEVAMIENTO 1.7.1*\n\n` +
                 `• *División:* ${d.division}\n` +
                 `• *Línea:* ${d.linea}\n` +
                 `• *Piquete/Vano:* ${d.piquete}\n` +
