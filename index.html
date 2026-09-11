@@ -26,7 +26,7 @@
     </div>
 
     <div class="bg-blue-800 text-white p-4 text-center shadow-md">
-      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC 1.6</h1>
+      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC 1.7</h1>
       <p class="text-[11px] text-blue-200">PWA Independiente — Modo Offline Nativo</p>
     </div>
 
@@ -128,7 +128,7 @@
       <input type="hidden" id="lat" name="lat" value="Sin GPS">
       <input type="hidden" id="lng" name="lng" value="Sin GPS">
 
-      <button type="submit" class="w-full bg-blue-800 text-white font-bold py-3 px-4 rounded-lg shadow hover:bg-blue-900 transition-all">
+      <button type="submit" id="btnSubmit" class="w-full bg-blue-800 text-white font-bold py-3 px-4 rounded-lg shadow hover:bg-blue-900 transition-all">
         🚀 Registrar Piquete
       </button>
     </form>
@@ -314,10 +314,15 @@
 
     document.addEventListener("click", (e) => { if (e.target !== inp) sug.classList.add("hidden"); });
 
-    // SUBMIT DEL FORMULARIO
+    // SUBMIT DEL FORMULARIO CON PROTECCIÓN ANTI-DOBLE CLIC
     document.getElementById("formReclamo").addEventListener("submit", function(e) {
       e.preventDefault();
       
+      const btnSubmit = document.getElementById("btnSubmit");
+      
+      // 🚫 BLOQUEO PREVENTIVO: Si el botón ya está deshabilitado, cortar ejecución
+      if (btnSubmit.disabled) return;
+
       const textoLinea = inp.value.trim().toUpperCase();
       const esValida = cacheLineas.some(l => l.toUpperCase() === textoLinea);
 
@@ -330,7 +335,12 @@
         return; 
       }
 
-      // ARMADO DEL CAMPO PIQUETE/VANO (UNIFICACIÓN DE RECUADROS DESDE Y HASTA)
+      // 🔒 DESHABILITAR BOTÓN PARA EVITAR RÁFAGAS
+      btnSubmit.disabled = true;
+      btnSubmit.classList.add("opacity-50", "cursor-not-allowed");
+      btnSubmit.innerText = "⏳ Registrando...";
+
+      // ARMADO DEL CAMPO PIQUETE/VANO
       const pDesde = document.getElementById("piqueteDesde").value.trim();
       const pHasta = document.getElementById("piqueteHasta").value.trim();
       let piqueteCompuesto = pDesde;
@@ -357,6 +367,21 @@
         hora: soloHora
       };
 
+      const finalizarEnvio = () => {
+        dispararWhatsApp(datos);
+
+        document.getElementById("piqueteDesde").value = "";
+        document.getElementById("piqueteHasta").value = "";
+        document.getElementById("categoria").value = "";
+        document.getElementById("observacion").value = "";
+        document.getElementsByName("prioridad").forEach(r => r.checked = false);
+
+        // 🔓 REHABILITAR BOTÓN
+        btnSubmit.disabled = false;
+        btnSubmit.classList.remove("opacity-50", "cursor-not-allowed");
+        btnSubmit.innerText = "🚀 Registrar Piquete";
+      };
+
       if (navigator.onLine) {
         fb.className = "mt-3 p-3 rounded-lg text-xs text-center font-bold bg-amber-100 text-amber-900 block";
         fb.innerText = "⏳ Impactando registro en Google Sheets...";
@@ -368,25 +393,34 @@
           fb.innerText = "✅ Sincronizado en la central. Abriendo despacho.";
           setTimeout(() => fb.classList.add("hidden"), 2000);
           procesarColaPendiente(); 
-        }).catch(() => encolarOffline(datos));
+          finalizarEnvio();
+        }).catch(() => {
+          encolarOffline(datos);
+          finalizarEnvio();
+        });
       } else {
         encolarOffline(datos);
+        finalizarEnvio();
       }
-
-      dispararWhatsApp(datos);
-
-      document.getElementById("piqueteDesde").value = "";
-      document.getElementById("piqueteHasta").value = "";
-      document.getElementById("categoria").value = "";
-      document.getElementById("observacion").value = "";
-      document.getElementsByName("prioridad").forEach(r => r.checked = false);
     });
 
     function encolarOffline(datos) {
       const fb = document.getElementById("feedback");
       let cola = JSON.parse(localStorage.getItem("pwa_cola")) || [];
-      cola.push(datos);
-      localStorage.setItem("pwa_cola", JSON.stringify(cola));
+      
+      // 🛡️ CONTROL ANTI-DUPLICADOS DENTRO DE LA COLA LOCAL
+      const yaExiste = cola.some(item => 
+        item.linea === datos.linea && 
+        item.piquete === datos.piquete && 
+        item.categoria === datos.categoria &&
+        item.fecha === datos.fecha &&
+        item.hora === datos.hora
+      );
+
+      if (!yaExiste) {
+        cola.push(datos);
+        localStorage.setItem("pwa_cola", JSON.stringify(cola));
+      }
       
       actualizarContadorOffline();
 
@@ -461,12 +495,12 @@
           p => {
             document.getElementById("lat").value = p.coords.latitude;
             document.getElementById("lng").value = p.coords.longitude;
-            alertaGpsBox.classList.add("hidden"); // Oculta aviso si captura coordenadas
+            alertaGpsBox.classList.add("hidden"); 
           },
           err => {
             document.getElementById("lat").value = "Sin GPS";
             document.getElementById("lng").value = "Sin GPS";
-            alertaGpsBox.classList.remove("hidden"); // Muestra aviso rojo de alerta GPS
+            alertaGpsBox.classList.remove("hidden"); 
           },
           { enableHighAccuracy: true, timeout: 10000 }
         );
