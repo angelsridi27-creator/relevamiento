@@ -26,7 +26,7 @@
     </div>
 
     <div class="bg-blue-800 text-white p-4 text-center shadow-md">
-      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC 1.7.6</h1>
+      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC 1.7.7</h1>
       <p class="text-[11px] text-blue-200">PWA Independiente — Modo Offline Nativo</p>
     </div>
 
@@ -114,7 +114,7 @@
             <option value="" disabled selected>-- Seleccionar subcategoría --</option>
             <option value="Estructura socavada">Estructura socavada</option>
             <option value="Apoyo proximo a cauces, rios, lagunas, etc.">Apoyo próximo a cauces, ríos, lagunas, etc.</option>
-            <option value="Estructura reticulada con faltante/hormigon con grietas, fisuras">Estructura reticulada / hormigón dañado</option>
+            <option value="Estructura reticulada con faltante, madera/hormigon con grietas, fisuras">Estructura reticulada, madera / hormigón dañado</option>
             <option value="Estructura fuera de plomo">Estructura fuera de plomo</option>
             <option value="Caminos anegados/inundables">Caminos anegados / inundables</option>
             <option value="Zona inundable por lluvias abundantes">Zona inundable por lluvias abundantes</option>
@@ -128,7 +128,7 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Distancia al cauce (m):</label>
-              <input type="number" id="distanciaCauce" min="0" placeholder="Ej: 45" oninput="calcularPrioridadCauce()" class="w-full px-3 py-2 border rounded-lg text-sm bg-white font-bold">
+              <input type="number" id="distanciaCauce" min="0" placeholder="Ej: 45" class="w-full px-3 py-2 border rounded-lg text-sm bg-white font-bold">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">¿Apoyo de desvío?:</label>
@@ -139,9 +139,6 @@
               </select>
             </div>
           </div>
-          <p id="txtCalculoPrioridad" class="text-[11px] font-semibold text-slate-600 bg-white p-2 rounded border">
-            💡 Prioridad sugerida: <span id="valPrioridadSugerida" class="font-bold text-slate-800">Ingrese distancia</span>
-          </p>
         </div>
 
         <!-- CONDICIONAL: ESTRUCTURA FUERA DE PLOMO -->
@@ -258,7 +255,7 @@
     }
 
     /**
-     * Muestra campos condicionales y calcula prioridad según la subcategoría seleccionada
+     * Muestra campos condicionales según la subcategoría seleccionada
      */
     function manejarCambioSubcategoria() {
       const subcat = document.getElementById("subcategoriaFenomeno").value;
@@ -269,7 +266,6 @@
         document.getElementById("boxCauce").classList.remove("hidden");
         document.getElementById("apoyoDesvio").required = true;
         document.getElementById("distanciaCauce").required = true;
-        calcularPrioridadCauce();
       } else if (subcat === "Estructura fuera de plomo") {
         document.getElementById("boxPlomo").classList.remove("hidden");
         document.getElementById("condicionRienda").required = true;
@@ -285,38 +281,6 @@
           r.required = false;
           r.checked = false;
         });
-      }
-    }
-
-    /**
-     * Calcula la prioridad automática según la distancia al cauce:
-     * - < 50m: Rojo
-     * - 50m - 100m: Amarillo
-     * - > 100m: Verde
-     */
-    function calcularPrioridadCauce() {
-      const distInput = document.getElementById("distanciaCauce").value;
-      const txtSugerida = document.getElementById("valPrioridadSugerida");
-
-      if (distInput === "" || isNaN(distInput)) {
-        txtSugerida.innerText = "Ingrese distancia";
-        txtSugerida.className = "font-bold text-slate-800";
-        return;
-      }
-
-      const dist = parseFloat(distInput);
-      if (dist < 50) {
-        document.getElementById("prioRojo").checked = true;
-        txtSugerida.innerText = "ROJO (< 50m)";
-        txtSugerida.className = "font-bold text-red-600";
-      } else if (dist >= 50 && dist <= 100) {
-        document.getElementById("prioAmarillo").checked = true;
-        txtSugerida.innerText = "AMARILLO (50m - 100m)";
-        txtSugerida.className = "font-bold text-amber-600";
-      } else {
-        document.getElementById("prioVerde").checked = true;
-        txtSugerida.innerText = "VERDE (> 100m)";
-        txtSugerida.className = "font-bold text-emerald-600";
       }
     }
 
@@ -704,7 +668,7 @@
         }
       }
 
-      let msg = `*EPEC RELEVAMIENTO 1.7.6*\n\n` +
+      let msg = `*EPEC RELEVAMIENTO 1.7.7*\n\n` +
                 avisoMeteorologico +
                 `• *División:* ${d.division}\n` +
                 `• *Línea:* ${d.linea}\n` +
