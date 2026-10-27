@@ -26,7 +26,7 @@
     </div>
 
     <div class="bg-blue-800 text-white p-4 text-center shadow-md">
-      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC 1.7.7</h1>
+      <h1 class="text-lg font-bold tracking-wide">📦 APP RELEVAMIENTO EPEC 1.7.8</h1>
       <p class="text-[11px] text-blue-200">PWA Independiente — Modo Offline Nativo</p>
     </div>
 
@@ -215,9 +215,6 @@
       window.addEventListener("offline", actualizarEstadoRed);
     });
 
-    /**
-     * Muestra u oculta el submenú de Fenómeno Meteorológico según la categoría seleccionada
-     */
     function manejarCambioCategoria() {
       const categoria = document.getElementById("categoria").value;
       const contenedor = document.getElementById("contenedorFenomeno");
@@ -254,9 +251,6 @@
       radios.forEach(r => r.required = true);
     }
 
-    /**
-     * Muestra campos condicionales según la subcategoría seleccionada
-     */
     function manejarCambioSubcategoria() {
       const subcat = document.getElementById("subcategoriaFenomeno").value;
       ocultarSubCajasFenomeno();
@@ -273,7 +267,6 @@
         document.getElementById("boxSiNo").classList.remove("hidden");
         document.getElementById("respuestaSiNo").required = true;
         
-        // Desactivar y ocultar prioridad de intervención
         const boxPrioridad = document.getElementById("boxPrioridad");
         boxPrioridad.classList.add("hidden");
         const radios = document.getElementsByName("prioridad");
@@ -284,23 +277,11 @@
       }
     }
 
-    /**
-     * ✂️ Normaliza automáticamente el Piquete / Vano:
-     * - Convierte rt/tr a " RT" en mayúsculas
-     * - Quita espacios en guiones (ej: "308 - 309" -> "308-309")
-     * - Conserva de forma intacta otros textos (ej: "180 bis")
-     */
     function normalizarPiquetePWA(valor) {
       if (!valor) return "";
       let texto = String(valor).trim();
-
-      // 1. Quitar espacios alrededor de guiones
       texto = texto.replace(/\s*-\s*/g, "-");
-
-      // 2. Normalizar variantes de RT / TR
       texto = texto.replace(/\s*[-_]?\s*(rt|tr)\b/gi, " RT");
-
-      // 3. Colapsar espacios múltiples sobrantes
       return texto.replace(/\s+/g, " ").trim();
     }
 
@@ -402,7 +383,6 @@
       }
     }
 
-    // 🔍 AUTOCOMPLETADO Y VALIDACIÓN OBLIGATORIA DE LÍNEA
     const inp = document.getElementById("linea");
     const sug = document.getElementById("listaSugerencias");
     const errLinea = document.getElementById("errorLinea");
@@ -461,13 +441,10 @@
 
     document.addEventListener("click", (e) => { if (e.target !== inp) sug.classList.add("hidden"); });
 
-    // SUBMIT DEL FORMULARIO CON APERTURA INSTANTÁNEA
     document.getElementById("formReclamo").addEventListener("submit", function(e) {
       e.preventDefault();
       
       const btnSubmit = document.getElementById("btnSubmit");
-      
-      // 🚫 EVITAR REPETICIONES SI YA SE ESTÁ PROCESANDO
       if (btnSubmit.disabled) return;
 
       const textoLinea = inp.value.trim().toUpperCase();
@@ -482,12 +459,10 @@
         return; 
       }
 
-      // 🔒 DESHABILITAR BOTÓN PARA BLOQUEAR DOBLE CLIC
       btnSubmit.disabled = true;
       btnSubmit.classList.add("opacity-50", "cursor-not-allowed");
       btnSubmit.innerText = "⏳ Procesando...";
 
-      // ARMADO Y NORMALIZACIÓN DEL CAMPO PIQUETE/VANO
       const pDesde = document.getElementById("piqueteDesde").value.trim();
       const pHasta = document.getElementById("piqueteHasta").value.trim();
       let piqueteCompuesto = pDesde;
@@ -495,30 +470,34 @@
         piqueteCompuesto = `${pDesde} - ${pHasta}`;
       }
 
-      // ✂️ Aplicación de normalización silenciosa
       piqueteCompuesto = normalizarPiquetePWA(piqueteCompuesto);
 
-      // Gestión de categoría y subcategoría de fenómeno meteorológico
       let categoriaFinal = document.getElementById("categoria").value;
       const subcatFenomeno = document.getElementById("subcategoriaFenomeno").value;
 
-      let detallesAdicionalesMet = {};
+      let observacionesExtra = "";
 
       if (categoriaFinal === "Fenómeno Meteorológico" && subcatFenomeno) {
         categoriaFinal = `Fenómeno Meteorológico (${subcatFenomeno})`;
 
         if (subcatFenomeno === "Apoyo proximo a cauces, rios, lagunas, etc.") {
-          detallesAdicionalesMet.distancia = document.getElementById("distanciaCauce").value || "No especificada";
-          detallesAdicionalesMet.desvio = document.getElementById("apoyoDesvio").value;
+          const dist = document.getElementById("distanciaCauce").value || "0";
+          const desvio = document.getElementById("apoyoDesvio").value;
+          observacionesExtra = `[${desvio === "SI" ? "DESVIO" : "NO DESVIO"} - ${dist}m]`;
         } else if (subcatFenomeno === "Estructura fuera de plomo") {
-          detallesAdicionalesMet.rienda = document.getElementById("condicionRienda").value;
+          const rienda = document.getElementById("condicionRienda").value;
+          observacionesExtra = `[${rienda.toUpperCase()}]`;
         } else if (subcatFenomeno === "Arboles altos en zona ventosa" || subcatFenomeno === "Antecedentes de colapsos en la zona") {
-          detallesAdicionalesMet.respuestaSiNo = document.getElementById("respuestaSiNo").value;
+          const resp = document.getElementById("respuestaSiNo").value;
+          observacionesExtra = `[${resp}]`;
         }
       }
 
       const radioPrio = document.querySelector('input[name="prioridad"]:checked');
       const prioridadVal = radioPrio ? radioPrio.value : "N/A";
+
+      let obsUsuario = document.getElementById("observacion").value.trim();
+      let observacionFinal = observacionesExtra ? `${observacionesExtra} ${obsUsuario}`.trim() : (obsUsuario || "Sin observaciones");
 
       const fb = document.getElementById("feedback");
       const ahora = new Date();
@@ -532,18 +511,15 @@
         piquete: piqueteCompuesto,
         categoria: categoriaFinal,
         prioridad: prioridadVal,
-        detallesMet: detallesAdicionalesMet,
-        observacion: document.getElementById("observacion").value || "Sin observaciones",
+        observacion: observacionFinal,
         lat: document.getElementById("lat").value,
         lng: document.getElementById("lng").value,
         fecha: soloFecha,
         hora: soloHora
       };
 
-      // 1. ⚡ DISPARO INSTANTÁNEO A WHATSAPP (SIN ESPERAR RED)
       dispararWhatsApp(datos);
 
-      // 2. 🧹 LIMPIEZA INMEDIATA DE CAMPOS
       document.getElementById("piqueteDesde").value = "";
       document.getElementById("piqueteHasta").value = "";
       document.getElementById("categoria").value = "";
@@ -558,7 +534,6 @@
       document.getElementById("observacion").value = "";
       document.getElementsByName("prioridad").forEach(r => r.checked = false);
 
-      // 3. 🌐 IMPACTO EN SHEETS EN SEGUNDO PLANO
       if (navigator.onLine) {
         fb.className = "mt-3 p-3 rounded-lg text-xs text-center font-bold bg-amber-100 text-amber-900 block";
         fb.innerText = "⏳ Impactando registro en Google Sheets...";
@@ -590,7 +565,6 @@
       const fb = document.getElementById("feedback");
       let cola = JSON.parse(localStorage.getItem("pwa_cola")) || [];
       
-      // 🛡️ EVITAR DUPLICADOS EN LA MEMORIA DEL TELÉFONO
       const yaExiste = cola.some(item => 
         item.linea === datos.linea && 
         item.piquete === datos.piquete && 
@@ -657,18 +631,7 @@
 
       let textoReclamo = `${d.categoria} ${emojiPrioridad !== "⚪" ? emojiPrioridad : ""}`.trim();
 
-      // Detalles dinámicos según subcategoría
-      if (d.detallesMet) {
-        if (d.detallesMet.distancia) {
-          textoReclamo += `\n• *Distancia cauce:* ${d.detallesMet.distancia} m | *Desvío:* ${d.detallesMet.desvio}`;
-        } else if (d.detallesMet.rienda) {
-          textoReclamo += `\n• *Condición:* ${d.detallesMet.rienda}`;
-        } else if (d.detallesMet.respuestaSiNo) {
-          textoReclamo += `\n• *Aplica:* ${d.detallesMet.respuestaSiNo}`;
-        }
-      }
-
-      let msg = `*EPEC RELEVAMIENTO 1.7.7*\n\n` +
+      let msg = `*EPEC RELEVAMIENTO 1.7.8*\n\n` +
                 avisoMeteorologico +
                 `• *División:* ${d.division}\n` +
                 `• *Línea:* ${d.linea}\n` +
@@ -688,7 +651,6 @@
       window.location.href = `whatsapp://send?text=${encodeURIComponent(msg)}`;
     }
 
-    // 📡 CONTROL Y MONITOREO DE GPS
     function activarGPS() {
       const alertaGpsBox = document.getElementById("alertaGps");
       if (navigator.geolocation) {
