@@ -6,6 +6,11 @@
   <title>App Redes A.T.</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1e40af">
+  
+  <!-- 🎨 ICONOS DE LA PWA -->
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="apple-touch-icon" href="logo.png">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .autocomplete-wrapper { position: relative; width: 100%; }
@@ -535,7 +540,7 @@
       let obsUsuario = document.getElementById("observacion").value.trim();
       let observacionFinal = observacionesExtra ? `${observacionesExtra} ${obsUsuario}`.trim() : (obsUsuario || "Sin observaciones");
 
-      // Capturar estructura seleccionada (columna I)
+      // Capturar estructura seleccionada (columna I local / J unificada)
       const tipoEstructuraVal = document.getElementById("tipoEstructura").value;
 
       const fb = document.getElementById("feedback");
@@ -550,7 +555,7 @@
         piquete: piqueteCompuesto,
         categoria: categoriaFinal,
         prioridad: prioridadVal,
-        estructura: tipoEstructuraVal, // 👈 Se envía para alojarse en la columna I
+        estructura: tipoEstructuraVal, 
         observacion: observacionFinal,
         lat: document.getElementById("lat").value,
         lng: document.getElementById("lng").value,
